@@ -1,6 +1,6 @@
 # 首版依赖与版本
 
-核对日期为 2026-11-23。模板目前处于设计阶段。以下是面向 Windows 桌面应用的直接依赖基线，范围包括 UI、项目文件、授权客户端、文本日志、本机 MCP 和在线更新。传递依赖在创建应用时由 pnpm 和 Cargo 锁文件记录。
+核对日期为 2026-11-23。以下是面向 Windows 桌面应用的直接依赖基线，范围包括 UI、项目文件、授权客户端、文本日志、本机 MCP 和在线更新。实际解析结果见 [pnpm 锁文件](../pnpm-lock.yaml) 和 [Cargo 锁文件](../src-tauri/Cargo.lock)。
 
 ## 工具链
 
@@ -20,7 +20,7 @@ Windows 原生构建还需要 MSVC C++ 生成工具和 Windows SDK，桌面运�
 | --- | --- |
 | 界面 | `react` 19.3.1、`react-dom` 19.3.1、[qing-steel 0.11.2 发布包](https://github.com/liangyuR/qing-steel/releases/download/v0.11.2/qing-steel-0.11.2.tgz) |
 | 导航、图标 | `react-router-dom` 7.18.6、`lucide-react` 1.78.0 |
-| 桌面调用、检查与安装更新 | `@tauri-apps/api` 2.12.5、`@tauri-apps/plugin-updater` 2.14.1 |
+| 桌面调用、检查与安装更新 | `@tauri-apps/api` 2.12.5（更新操作通过 Rust 命令调用插件） |
 | 开发与构建 | `@tauri-apps/cli` 2.12.6、`typescript` 7.0.2、`vite` 8.3.8、`@vitejs/plugin-react` 6.3.0 |
 | 类型声明 | `@types/node` 26.6.6、`@types/react` 19.3.0、`@types/react-dom` 19.3.0 |
 | 前端回归 | `vitest` 5.1.1、`jsdom` 31.0.1 |
@@ -44,6 +44,6 @@ Windows 原生构建还需要 MSVC C++ 生成工具和 Windows SDK，桌面运�
 
 `grantmint-offline` 暂无稳定发布。首版沿用 GlueSight 授权客户端已验收的 Git 修订 `7183c40960853a32cb176be2ccb46c7aa75b50fc`。源码清单中的 `0.1.0` 是包内版本。该 SDK 自身的密码学依赖遵循其 Cargo 清单。[SDK 源码清单](https://github.com/liangyuR/grantmint/blob/7183c40960853a32cb176be2ccb46c7aa75b50fc/verifiers/rust/Cargo.toml)
 
-## 本次核验
+## 版本与构建
 
-在临时目录用 npm 严格检查上表前端组合的 peer dependencies 并成功解析锁文件；qing-steel 发布包声明支持 React 和 React DOM `>=18.2.0 <20`。Rust 直接依赖连同固定修订的授权 SDK 已用 Cargo 成功解析锁文件。应用编译、Windows 启动、授权与更新流程的验证留到模板实现阶段。
+[package.json](../package.json) 与 [Cargo.toml](../src-tauri/Cargo.toml) 记录实际的直接依赖。Windows 原生授权适配还用到与 Grantmint v2 协议兼容的编码、随机数、内存清理和 TLS 库。测试签名器只在测试构建中引入。开发命令和验证入口见[仓库首页](../README.md)。

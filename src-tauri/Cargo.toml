@@ -1,0 +1,45 @@
+[package]
+name = "ly-desktop-template"
+version = "0.1.0"
+edition = "2024"
+description = "通用 Windows 桌面工作台"
+
+[build-dependencies]
+tauri-build = { version = "=2.7.6", features = [] }
+
+[dependencies]
+tauri = { version = "=2.12.7", features = [] }
+tauri-plugin-updater = "=2.14.1"
+tauri-plugin-opener = "=2.7.3"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+uuid = { version = "=1.29.3", features = ["v4", "serde"] }
+zip = { version = "=9.8.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+sha2 = "=0.11.1"
+rfd = "=0.18.0"
+tracing = "=0.1.44"
+tracing-subscriber = { version = "=0.3.23", features = ["env-filter"] }
+flexi_logger = { version = "=0.32.0", features = ["trc"] }
+chrono = "=0.4.45"
+rmcp = { version = "=3.11.0", features = ["transport-streamable-http-server"] }
+tokio = { version = "=1.54.1", features = ["net", "sync", "time", "rt", "macros"] }
+tokio-util = "0.7"
+axum = "=0.8.9"
+grantmint-offline = { git = "https://github.com/liangyuR/grantmint.git", rev = "7183c40960853a32cb176be2ccb46c7aa75b50fc" }
+reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "json", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Security_Cryptography", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_System_Com", "Win32_Foundation"] }
+
+base64 = '0.22'
+zeroize = '1'
+getrandom = '0.2'
+
+[dev-dependencies]
+ed25519-dalek = '2'
+tempfile = "3"
+
+[profile.dev]
+debug = 0
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
