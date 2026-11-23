@@ -9,7 +9,7 @@ export function AboutPage() {
   const { info, update } = useApp();
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
-  const [confirm, setConfirm] = useState(false);
+  const [confirmVersion, setConfirmVersion] = useState<string>();
   const [installing, setInstalling] = useState(false);
   const check = async () => {
     setChecking(true);
@@ -20,12 +20,12 @@ export function AboutPage() {
     setInstalling(true);
     setError("");
     try {
-      await call("update_install");
+      await call("update_install", { expectedVersion: confirmVersion });
     } catch (e) {
       setError(errorText(e));
     } finally {
       setInstalling(false);
-      setConfirm(false);
+      setConfirmVersion(undefined);
     }
   };
   return (
@@ -68,7 +68,7 @@ export function AboutPage() {
               : update.value?.status === "unconfigured"
                 ? "此应用尚未配置更新源。"
                 : desktop
-                  ? "等待更新检查结果。"
+                  ? (update.error ? "未取得可用更新。" : "等待更新检查结果。")
                   : "在桌面应用中检查更新。"}
         </p>
         {update.value?.notes && (
@@ -85,8 +85,8 @@ export function AboutPage() {
           {update.value?.status === "available" && (
             <Button
               variant="filled"
-              onClick={() => setConfirm(true)}
-              disabled={installing}
+              onClick={() => setConfirmVersion(update.value?.version)}
+              disabled={installing || checking}
             >
               安装更新
             </Button>
@@ -94,17 +94,17 @@ export function AboutPage() {
         </div>
       </Card>
       <Failure text={error} />
-      {confirm && (
+      {confirmVersion && confirmVersion === update.value?.version && (
         <Dialog
           open
           title="安装更新并重启？"
           closeDisabled={installing}
           onOpenChange={(open) => {
-            if (!open && !installing) setConfirm(false);
+            if (!open && !installing) setConfirmVersion(undefined);
           }}
           footer={
             <>
-              <Button disabled={installing} onClick={() => setConfirm(false)}>
+              <Button disabled={installing} onClick={() => setConfirmVersion(undefined)}>
                 稍后
               </Button>
               <Button
@@ -117,7 +117,7 @@ export function AboutPage() {
             </>
           }
         >
-          请先保存正在编辑的内容。应用将下载并验证 {update.value?.version}{" "}
+          请先保存正在编辑的内容。应用将下载并验证 {confirmVersion}{" "}
           更新包，安装完成后重启。
         </Dialog>
       )}
