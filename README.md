@@ -8,6 +8,7 @@
 
 - 仓库公开，名称为 `liangyuR/ly-desktop-template`。
 - 面向通用桌面应用，保留基本 UI、配置与日志能力。首版内置项目管理，支持在同一应用进程和窗口中切换项目。
+- 首版纳入统一软件授权。派生应用按产品接入同一签发服务，客户端支持联网激活与离线使用。具体规则见[软件授权设计](docs/framework-proposal.md#统一软件授权)。
 - 参考 GlueSight 的 `main` 提交 [`432119ad`](https://github.com/liangyuR/ly-gluesight/commit/432119ad1e88041ee33cce4b06caf2e6308f5e5a)。
 
 ## 设计入口
