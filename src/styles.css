@@ -23,7 +23,14 @@ html {
 }
 .titlebar {
   flex: none;
+  min-height: var(--row-h);
+  padding: var(--space-4) var(--space-12);
   user-select: none;
+}
+.titlebar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .brand-mark {
   flex: none;
