@@ -1,24 +1,37 @@
-# ly-desktop-template
+# Ly Desktop
 
-面向通用桌面应用的 Tauri + React 模板，计划沿用 GlueSight 的基本 UI 风格，提取配置、日志与桌面生命周期等基础能力。
+适用于 Windows 的 Tauri + React 桌面模板。首次启动进入项目列表，创建或导入项目后可在同一窗口切换。应用提供浅色、深色和系统主题，设置与项目使用 JSON 持久化。MCP、授权服务和更新源均可在接入具体产品时配置。
 
-**当前状态：设计讨论阶段。仓库已启用 GitHub Template，尚未包含可运行应用。**
+## 本地启动
 
-## 已确定
+准备 Windows x64、MSVC C++ 生成工具、Windows SDK、WebView2 Runtime、Node.js 26.13.1、pnpm 12.21.0 和 rustup。Rust 版本由仓库工具链文件指定。在仓库根目录运行：
 
-- Windows 是桌面模板首版唯一的验收平台。
-- 首版内置浅色、深色和跟随系统三种主题模式。
-- 运行日志使用 Rust 的 `tracing` 写入纯文本文件。在“关于”中点击“打开当前日志”，即可用系统默认编辑器查看。
-- 面向通用桌面应用，保留基本 UI、配置与日志能力。首版内置项目管理，用户可直接在同一窗口切换项目。
-- 首版纳入统一软件授权。派生应用按产品接入同一签发服务，客户端支持联网激活、离线验签和非阻塞到期提醒，业务任务独立执行。具体规则见[软件授权设计](docs/framework-proposal.md#统一软件授权)。
-- MCP 默认关闭，启用后仅允许本机连接。框架提供固定入口与通用配置，业务工具由派生应用注册。
-- 产品启用并配置更新源后，应用在启动时后台检查新版。发现新版仅提示，由用户决定何时下载、安装并重启。
-- 参考 GlueSight 的 `main` 提交 [`432119ad`](https://github.com/liangyuR/ly-gluesight/commit/432119ad1e88041ee33cce4b06caf2e6308f5e5a)。
+```powershell
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-## 设计入口
+`pnpm dev:web` 仅运行浏览器预览。调试与正式版分别在当前用户、当前应用标识对应的本地数据目录中使用 development 或 production 子目录，实际路径见“关于”。同一目录只允许一个桌面实例运行。
 
-[依赖与版本](docs/dependencies.md) 列出首版工具链、前后端直接依赖、测试依赖及授权 SDK 的固定修订。
+## 验证与打包
 
-[框架设计提案](docs/framework-proposal.md) 记录建议范围、抽取边界和待讨论事项。提案中的能力尚未实现，也不代表已经确定的 API。
+```powershell
+pnpm test
+pnpm build
+cargo test --locked --manifest-path src-tauri/Cargo.toml --features custom-protocol
+pnpm package
+```
 
-代码抽取将在范围确定后开展；模板使用独立 Git 历史和应用身份，不携带源项目运行数据。
+Windows 安装包输出到 `src-tauri/target/release/bundle/nsis/`。构建 Rust 测试的内嵌前端资源前，先运行 `pnpm build`。
+
+## 派生新产品
+
+- [初始化名称、应用标识与图标](docs/initialization.md)。初始化后在 [modules.tsx](src/app/modules.tsx) 注册产品页面。
+- [项目管理与迁移](docs/projects.md)。导入、复制均创建新 ID，业务模块通过项目目录保存可迁移的资源。
+- [软件授权](docs/licensing.md)。配置外部 Grantmint 服务后可激活和续期，授权状态通过非阻塞提示呈现。
+- [本机 MCP](docs/mcp.md)。默认关闭，设置页可启停和设置端口。空模板的工具清单为空。
+- [在线更新](docs/updating.md)。更新由产品配置，后台检查，用户决定何时安装。
+
+文本日志按本地日期或 10 MiB 分卷。在“关于”中可用系统默认编辑器打开当前文件。[runtime.json](src-tauri/runtime.json) 控制归档保留天数，默认 180，范围 1–365。
+
+[框架契约](docs/framework-proposal.md) · [依赖版本](docs/dependencies.md)
