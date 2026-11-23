@@ -28,3 +28,4 @@ jobs:
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features custom-protocol
       - run: cargo build --locked --manifest-path src-tauri/Cargo.toml --features custom-protocol
+      - run: pnpm exec tauri bundle --debug --bundles nsis
