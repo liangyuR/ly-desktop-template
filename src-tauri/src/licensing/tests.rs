@@ -93,17 +93,55 @@ fn expiry_and_clock_rollback_after_restart_preserve_authorization_state() {
 
 #[test]
 fn restoring_only_an_old_certificate_cannot_lower_persisted_revision() {
+    for legacy in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let (cfg, key) = config();
+        let now = utc_now();
+        let mut manager = open_clock(cfg.clone(), dir.path().to_owned());
+        let first = signed_bundle(&key, &manager, now, now + 86400, 1);
+        install(&mut manager, first);
+        let live = dir.path().join("current");
+        let previous = fs::read(live.join("state.bin")).unwrap();
+        let renewed = signed_bundle(&key, &manager, now, now + 86400 * 30, 2);
+        install(&mut manager, renewed);
+        drop(manager);
+        let installed = if legacy {
+            for name in ["identity.bin", "state.bin", "anchor.bin"] {
+                fs::rename(live.join(name), dir.path().join(name)).unwrap();
+            }
+            fs::remove_dir(&live).unwrap();
+            dir.path()
+        } else {
+            live.as_path()
+        };
+        {
+            let mut reopened = open_clock(cfg.clone(), dir.path().to_owned());
+            assert_eq!(status_at(&mut reopened, now).state, "valid");
+        }
+        fs::write(installed.join("state.bin"), previous).unwrap();
+        let mut manager = open_clock(cfg, dir.path().to_owned());
+        assert_eq!(manager.status().state, "invalid");
+    }
+}
+
+#[test]
+fn interrupted_first_setup_retries_without_exposing_partial_identity() {
     let dir = tempfile::tempdir().unwrap();
-    let (cfg, key) = config();
-    let now = utc_now();
-    let mut manager = open_clock(cfg.clone(), dir.path().to_owned());
-    let first = signed_bundle(&key, &manager, now, now + 86400, 1);
-    install(&mut manager, first);
-    let previous = fs::read(dir.path().join("state.bin")).unwrap();
-    let renewed = signed_bundle(&key, &manager, now, now + 86400 * 30, 2);
-    install(&mut manager, renewed);
+    let (cfg, _) = config();
+    let root = dir.path().to_owned();
+    let failed = Store::open_or_initialize(root.clone(), |staging| {
+        staging.write("identity.bin", &"incomplete fixture")?;
+        Err("模拟提交前中断".into())
+    });
+    assert!(failed.is_err());
+
+    let mut manager = open_clock(cfg.clone(), root.clone());
+    assert_eq!(manager.status().state, "unactivated");
+    let expected_key = DeviceIdentity::from_seed(manager.identity.seed).key_hash();
     drop(manager);
-    fs::write(dir.path().join("state.bin"), previous).unwrap();
-    let mut manager = open_clock(cfg, dir.path().to_owned());
-    assert_eq!(manager.status().state, "invalid");
+    let reopened = open_clock(cfg, root);
+    assert_eq!(
+        DeviceIdentity::from_seed(reopened.identity.seed).key_hash(),
+        expected_key
+    );
 }

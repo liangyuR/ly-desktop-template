@@ -12,7 +12,10 @@ pub struct Store {
 }
 
 impl Store {
-    pub fn open(root: PathBuf) -> Result<Self, String> {
+    pub fn open_or_initialize(
+        root: PathBuf,
+        initialize: impl FnOnce(&Store) -> Result<(), String>,
+    ) -> Result<Self, String> {
         fs::create_dir_all(&root).map_err(|_| "不能创建授权安全存储目录")?;
         #[cfg(unix)]
         {
@@ -20,13 +23,7 @@ impl Store {
             fs::set_permissions(&root, fs::Permissions::from_mode(0o700))
                 .map_err(|_| "无法限制授权目录权限")?;
         }
-        if fs::symlink_metadata(&root)
-            .map_err(|_| "无法检查授权目录")?
-            .file_type()
-            .is_symlink()
-        {
-            return Err("授权目录不能是符号链接".into());
-        }
+        ensure_directory(&root)?;
         let lease = secure_options()
             .read(true)
             .write(true)
@@ -37,14 +34,33 @@ impl Store {
         lease
             .try_lock()
             .map_err(|_| "授权存储正在被另一个应用进程使用")?;
-        Ok(Self {
+        let mut store = Self {
             root,
             _lease: lease,
-        })
-    }
+        };
+        let live = store.root.join("current");
+        if present(&live)? {
+            ensure_directory(&live)?;
+            store.root = live;
+            return Ok(store);
+        }
+        for file in ["identity.bin", "anchor.bin", "state.bin"] {
+            if present(&store.root.join(file))? {
+                return Ok(store);
+            }
+        }
 
-    pub fn exists(&self, name: &str) -> bool {
-        self.root.join(name).exists()
+        let staging = store.root.join(".initializing");
+        if present(&staging)? {
+            ensure_directory(&staging)?;
+            fs::remove_dir_all(&staging).map_err(|_| "无法清理未提交的授权暂存目录")?;
+        }
+        fs::create_dir(&staging).map_err(|_| "无法创建授权暂存目录")?;
+        store.root = staging;
+        initialize(&store)?;
+        publish(&store.root, &live)?;
+        store.root = live;
+        Ok(store)
     }
 
     pub fn read<T: DeserializeOwned>(&self, name: &str) -> Result<T, String> {
@@ -100,6 +116,45 @@ impl Store {
     }
 }
 
+fn present(path: &Path) -> Result<bool, String> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(_) => Err("无法检查授权存储".into()),
+    }
+}
+
+fn ensure_directory(path: &Path) -> Result<(), String> {
+    let meta = fs::symlink_metadata(path).map_err(|_| "无法检查授权目录")?;
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+        if meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+            return Err("授权目录不能是重解析点".into());
+        }
+    }
+    if !meta.is_dir() || meta.file_type().is_symlink() {
+        return Err("授权目录类型无效".into());
+    }
+    Ok(())
+}
+
+fn publish(source: &Path, target: &Path) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Storage::FileSystem::MOVEFILE_WRITE_THROUGH;
+        move_file(source, target, MOVEFILE_WRITE_THROUGH)
+    }
+    #[cfg(not(windows))]
+    {
+        fs::rename(source, target).map_err(|_| "无法提交授权初始化")?;
+        File::open(target.parent().ok_or("授权目录缺少父目录")?)
+            .and_then(|dir| dir.sync_all())
+            .map_err(|_| "无法同步授权目录".into())
+    }
+}
+
 fn secure_options() -> OpenOptions {
     let options = OpenOptions::new();
     #[cfg(unix)]
@@ -114,20 +169,23 @@ fn secure_options() -> OpenOptions {
 
 #[cfg(windows)]
 fn replace(source: &Path, target: &Path) -> Result<(), String> {
-    use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Storage::FileSystem::{
-        MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
+        MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
     };
+    move_file(
+        source,
+        target,
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+    )
+}
+
+#[cfg(windows)]
+fn move_file(source: &Path, target: &Path, flags: u32) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
     let source: Vec<u16> = source.as_os_str().encode_wide().chain(Some(0)).collect();
     let target: Vec<u16> = target.as_os_str().encode_wide().chain(Some(0)).collect();
-    if unsafe {
-        MoveFileExW(
-            source.as_ptr(),
-            target.as_ptr(),
-            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
-        )
-    } == 0
-    {
+    if unsafe { MoveFileExW(source.as_ptr(), target.as_ptr(), flags) } == 0 {
         Err("无法原子替换授权保护文件".into())
     } else {
         Ok(())
