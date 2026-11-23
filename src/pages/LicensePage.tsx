@@ -1,18 +1,26 @@
 import { useState } from "react";
-import { Button, Card, TextField } from "qing-steel";
+import {
+  Button,
+  Card,
+  StatusBadge,
+  Text,
+  TextField,
+  type StatusBadgeTone,
+} from "qing-steel";
 import { PageHeading, Failure } from "../app/common";
 import { useApp } from "../app/state";
 import { call, desktop, errorText, type License } from "../desktop";
 
-export const licenseStates: Record<License["state"], string> = {
-  unconfigured: "待配置",
-  unactivated: "未激活",
-  valid: "有效",
-  expiring: "即将到期",
-  expired: "已到期",
-  invalid: "证书无效",
-  recovery: "需要处理",
-};
+const licenseStates = {
+  unconfigured: { label: "待配置", tone: "neutral" },
+  unactivated: { label: "未激活", tone: "off" },
+  valid: { label: "有效", tone: "ok" },
+  expiring: { label: "即将到期", tone: "warn" },
+  expired: { label: "已到期", tone: "ng" },
+  invalid: { label: "证书无效", tone: "ng" },
+  recovery: { label: "需要处理", tone: "warn" },
+} satisfies Record<License["state"], { label: string; tone: StatusBadgeTone }>;
+
 export function LicensePage() {
   const { license } = useApp();
   const [id, setId] = useState("");
@@ -20,6 +28,7 @@ export function LicensePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const value = license.value;
+  const status = value ? licenseStates[value.state] : undefined;
   const act = async (activate: boolean) => {
     setError("");
     setBusy(true);
@@ -44,28 +53,22 @@ export function LicensePage() {
       <Card
         title="本机授权"
         actions={
-          <span
-            className={
-              "state-pill" + (value?.state === "valid" ? " positive" : "")
-            }
-          >
-            {value
-              ? licenseStates[value.state]
-              : desktop
-                ? "未读取"
-                : "桌面端可用"}
-          </span>
+          <StatusBadge tone={status?.tone ?? "neutral"}>
+            {status?.label ?? (desktop ? "未读取" : "桌面端可用")}
+          </StatusBadge>
         }
       >
         <Failure text={license.error || error} retry={license.refresh} />
         {value && (
           <>
-            <p>{value.message}</p>
+            <Text as="p">{value.message}</Text>
             <dl className="detail-list">
               {value.licenseId && (
                 <>
                   <dt>授权编号</dt>
-                  <dd className="mono">{value.licenseId}</dd>
+                  <dd>
+                    <Text variant="data">{value.licenseId}</Text>
+                  </dd>
                 </>
               )}
               {value.expiresAt && (

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Copy, Minus, Square, X } from "lucide-react";
-import { useSnackbar } from "qing-steel";
+import { AppBar, IconButton, Stack, useSnackbar } from "qing-steel";
 import { useApp } from "../app/state";
 import { desktop, errorText } from "../desktop";
 import { TitlebarSlots } from "./TitlebarContent";
@@ -46,54 +46,61 @@ export function Frame({ children }: { children: ReactNode }) {
   return (
     <TitlebarSlots.Provider value={{ details, actions }}>
       <div className="frame">
-        <header className="titlebar">
-          <div
-            className="title-drag"
-            onMouseDown={(e) => {
-              if (
-                !win ||
-                e.button !== 0 ||
-                !(e.target instanceof Element) ||
-                e.target.closest("[data-slot]")
-              )
-                return;
-              run(e.detail === 2 ? win.toggleMaximize() : win.startDragging());
-            }}
-          >
-            <img className="brand-mark" src="/app-icon.png" alt="" draggable={false} />
-            <strong>{info.value?.name ?? document.title}</strong>
-            {info.value?.version && (
-              <span className="version">{info.value.version}</span>
-            )}
-            <div data-slot ref={setDetails} />
-          </div>
-          <div data-slot ref={setActions} />
-          {win && (
-            <div className="window-buttons">
-              <button
-                aria-label="最小化"
-                title="最小化"
-                onClick={() => run(win.minimize())}
-              >
-                <Minus />
-              </button>
-              <button
-                aria-label={maximized ? "还原" : "最大化"}
-                title={maximized ? "还原" : "最大化"}
-                onClick={() => run(win.toggleMaximize())}
-              >
-                {maximized ? <Copy /> : <Square />}
-              </button>
-              <button
-                aria-label="关闭窗口"
-                title="关闭窗口"
-                onClick={() => run(win.close())}
-              >
-                <X />
-              </button>
-            </div>
-          )}
-        </header>
+        <AppBar
+          className="titlebar"
+          title={
+            <Stack>
+              {info.value?.name ?? document.title}
+              <div data-slot ref={setDetails} />
+            </Stack>
+          }
+          subtitle={info.value?.version}
+          navigation={<img className="brand-mark" src="/app-icon.png" alt="" draggable={false} />}
+          actions={
+            <>
+              <div data-slot ref={setActions} />
+              {win && (
+                <Stack wrap={false}>
+                  <IconButton
+                    size="sm"
+                    aria-label="最小化"
+                    title="最小化"
+                    onClick={() => run(win.minimize())}
+                  >
+                    <Minus className="qs-ic" />
+                  </IconButton>
+                  <IconButton
+                    size="sm"
+                    aria-label={maximized ? "还原" : "最大化"}
+                    title={maximized ? "还原" : "最大化"}
+                    onClick={() => run(win.toggleMaximize())}
+                  >
+                    {maximized ? <Copy className="qs-ic" /> : <Square className="qs-ic" />}
+                  </IconButton>
+                  <IconButton
+                    size="sm"
+                    tone="danger"
+                    aria-label="关闭窗口"
+                    title="关闭窗口"
+                    onClick={() => run(win.close())}
+                  >
+                    <X className="qs-ic" />
+                  </IconButton>
+                </Stack>
+              )}
+            </>
+          }
+          onMouseDown={(e) => {
+            if (
+              !win ||
+              e.button !== 0 ||
+              !(e.target instanceof Element) ||
+              e.target.closest("[data-slot], button, a")
+            )
+              return;
+            run(e.detail === 2 ? win.toggleMaximize() : win.startDragging());
+          }}
+        />
         {children}
       </div>
     </TitlebarSlots.Provider>

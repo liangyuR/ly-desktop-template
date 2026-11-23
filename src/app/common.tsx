@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Alert, Button } from "qing-steel";
+import { Alert, Button, Heading, Stack } from "qing-steel";
 import type { ReactNode } from "react";
 export function PageHeading({
   title,
@@ -9,9 +9,11 @@ export function PageHeading({
   children?: ReactNode;
 }) {
   return (
-    <header className="page-heading">
-      <h1>{title}</h1>
-      <div className="actions">{children}</div>
+    <header>
+      <Stack justify="space-between">
+        <Heading level={1}>{title}</Heading>
+        {children && <Stack>{children}</Stack>}
+      </Stack>
     </header>
   );
 }
@@ -32,10 +34,13 @@ export function Failure({ text, retry }: { text: string; retry?: () => void }) {
     </Alert>
   );
 }
-export function ProjectLink() {
+export function ActionLink({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <Link className="inline-link" to="/projects">
-      前往项目管理
-    </Link>
+    <Button asChild variant="text" size="sm">
+      <Link to={to}>{children}</Link>
+    </Button>
   );
+}
+export function ProjectLink() {
+  return <ActionLink to="/projects">前往项目管理</ActionLink>;
 }

@@ -1,52 +1,44 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import {
-  FolderKanban,
-  Info,
-  KeyRound,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
-import { Select, useSnackbar } from "qing-steel";
+import { useState, type RefObject } from "react";
+import { Link, matchPath, useLocation, useNavigate } from "react-router-dom";
+import { FolderKanban, Info, KeyRound, Settings } from "lucide-react";
+import { NavigationDrawer, Select, useSnackbar } from "qing-steel";
 import { useApp } from "../app/state";
 import { modules } from "../app/modules";
 import { errorText } from "../desktop";
 
-const footer = [
-  { path: "/settings", title: "设置", icon: Settings },
-  { path: "/license", title: "软件授权", icon: KeyRound },
-  { path: "/about", title: "关于", icon: Info },
-];
-const projects = { path: "/projects", title: "项目", icon: FolderKanban };
-function Entry({
-  entry,
-  collapsed,
-}: {
-  entry: { path: string; title: string; icon: LucideIcon };
-  collapsed: boolean;
-}) {
-  return (
-    <NavLink
-      className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
-      to={entry.path}
-      aria-label={entry.title}
-      title={collapsed ? entry.title : undefined}
-    >
-      <entry.icon size={17} />
-      {!collapsed && <span>{entry.title}</span>}
-    </NavLink>
-  );
-}
-export function Sidebar() {
+const items = [
+  { path: "/projects", title: "项目", icon: FolderKanban, group: "工作区" },
+  ...modules.map((module) => ({ ...module, group: "工作区" })),
+  { path: "/settings", title: "设置", icon: Settings, group: "应用" },
+  { path: "/license", title: "软件授权", icon: KeyRound, group: "应用" },
+  { path: "/about", title: "关于", icon: Info, group: "应用" },
+].map(({ path, title, icon: Icon, group }) => ({
+  value: path,
+  href: path,
+  label: title,
+  icon: <Icon className="qs-ic" />,
+  group,
+}));
+
+export function Sidebar({ contentRef }: { contentRef: RefObject<HTMLElement | null> }) {
   const { projects: snapshot, active, changeProjects, projectBusy } = useApp();
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const current = items.find(({ value }) => matchPath(value, pathname))?.value ?? "";
   const { show } = useSnackbar();
   return (
-    <aside className={"sidebar" + (collapsed ? " rail" : "")}>
-      {!collapsed && (
+    <NavigationDrawer
+      label="应用导航"
+      items={items}
+      value={current}
+      collapsed={collapsed}
+      onCollapsedChange={setCollapsed}
+      contentRef={contentRef}
+      expandLabel="展开侧栏"
+      collapseLabel="收起侧栏"
+      renderLink={({ href, ...props }) => <Link to={href} {...props} />}
+      header={!collapsed && (
         <div className="project-switch">
           <Select
             label="当前项目"
@@ -66,35 +58,6 @@ export function Sidebar() {
           />
         </div>
       )}
-      <nav aria-label="工作区" className="nav-group">
-        {!collapsed && <span className="group-title">工作区</span>}
-        <Entry entry={projects} collapsed={collapsed} />
-        {modules.map((m) => (
-          <Entry key={m.path} entry={m} collapsed={collapsed} />
-        ))}
-      </nav>
-      <nav aria-label="应用" className="nav-group nav-bottom">
-        {!collapsed && <span className="group-title">应用</span>}
-        {footer.map((item) => (
-          <Entry key={item.path} entry={item} collapsed={collapsed} />
-        ))}
-      </nav>
-      <button
-        type="button"
-        className="rail-toggle"
-        aria-label={collapsed ? "展开侧栏" : "收起侧栏"}
-        aria-expanded={!collapsed}
-        onClick={() => setCollapsed((v) => !v)}
-      >
-        {collapsed ? (
-          <PanelLeftOpen />
-        ) : (
-          <>
-            <PanelLeftClose />
-            <span>收起侧栏</span>
-          </>
-        )}
-      </button>
-    </aside>
+    />
   );
 }

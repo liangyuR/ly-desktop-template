@@ -47,3 +47,7 @@ Windows 原生构建还需要 MSVC C++ 生成工具和 Windows SDK，桌面运�
 ## 版本与构建
 
 [package.json](../package.json) 与 [Cargo.toml](../src-tauri/Cargo.toml) 记录实际的直接依赖。Windows 原生授权适配还用到与 Grantmint v2 协议兼容的编码、随机数、内存清理和 TLS 库。测试签名器只在测试构建中引入。开发命令和验证入口见[仓库首页](../README.md)。
+
+模板的应用壳与默认页面共用 `qing-steel` 的主题和组件。派生页面沿用库组件，页面布局需要的颜色、圆角、排版和间距引用库的公开设计变量。青钢缺少的通用组件或样式可在上游补齐，再通过发布包接入。
+
+升级青钢时，在 `package.json` 中更新 `qing-steel` 的发布包 URL，运行 `pnpm install` 同步锁文件，再运行 `pnpm test` 和 `pnpm build`。兼容版本的视觉更新随构建生效。

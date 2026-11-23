@@ -1,5 +1,5 @@
 import { FolderOpen } from "lucide-react";
-import { Card, EmptyState } from "qing-steel";
+import { Card, EmptyState, Text } from "qing-steel";
 import { useApp } from "../app/state";
 import { PageHeading, ProjectLink } from "../app/common";
 
@@ -14,7 +14,9 @@ export function ExamplePage() {
             <dt>名称</dt>
             <dd>{active.name}</dd>
             <dt>编号</dt>
-            <dd className="mono">{active.id}</dd>
+            <dd>
+              <Text variant="data">{active.id}</Text>
+            </dd>
             <dt>描述</dt>
             <dd>{active.description || "未填写"}</dd>
           </dl>

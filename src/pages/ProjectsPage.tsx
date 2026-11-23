@@ -1,9 +1,15 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import {
   Button,
   Card,
+  Chip,
   Dialog,
   EmptyState,
+  IconButton,
+  List,
+  ListItem,
+  Stack,
+  Text,
   TextField,
   useSnackbar,
 } from "qing-steel";
@@ -26,6 +32,7 @@ type Edit =
 
 function ProjectDialog({ edit, close }: { edit: Edit; close: () => void }) {
   const { changeProjects, projectBusy } = useApp();
+  const formId = useId();
   const [name, setName] = useState(
     edit.kind === "create"
       ? ""
@@ -84,10 +91,28 @@ function ProjectDialog({ edit, close }: { edit: Edit; close: () => void }) {
       onOpenChange={(open) => {
         if (!open && !projectBusy) close();
       }}
+      footer={
+        <>
+          <Button onClick={close} disabled={projectBusy}>
+            取消
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            variant="filled"
+            danger={edit.kind === "delete"}
+            disabled={projectBusy || (edit.kind !== "delete" && !name.trim())}
+          >
+            {edit.kind === "delete" ? "确认删除" : title}
+          </Button>
+        </>
+      }
     >
-      <form className="form-stack" onSubmit={submit}>
+      <form id={formId} className="form-stack" onSubmit={submit}>
         {edit.kind === "delete" ? (
-          <p>删除“{edit.project.name}”及其本机数据？此操作无法撤销。</p>
+          <Text as="p">
+            删除“{edit.project.name}”及其本机数据？此操作无法撤销。
+          </Text>
         ) : (
           <>
             <TextField
@@ -107,19 +132,6 @@ function ProjectDialog({ edit, close }: { edit: Edit; close: () => void }) {
           </>
         )}
         <Failure text={error} />
-        <div className="actions end">
-          <Button type="button" onClick={close} disabled={projectBusy}>
-            取消
-          </Button>
-          <Button
-            type="submit"
-            variant="filled"
-            danger={edit.kind === "delete"}
-            disabled={projectBusy || (edit.kind !== "delete" && !name.trim())}
-          >
-            {edit.kind === "delete" ? "确认删除" : title}
-          </Button>
-        </div>
       </form>
     </Dialog>
   );
@@ -157,7 +169,7 @@ export function ProjectsPage() {
           variant="outlined"
           disabled={!desktop || busy}
           onClick={() => void perform(() => changeProjects("projects_import"))}
-          leadingIcon={<Upload size={15} />}
+          leadingIcon={<Upload className="qs-ic" />}
         >
           导入项目
         </Button>
@@ -165,16 +177,19 @@ export function ProjectsPage() {
           variant="filled"
           disabled={!desktop || busy}
           onClick={() => setEdit({ kind: "create" })}
-          leadingIcon={<Plus size={16} />}
+          leadingIcon={<Plus className="qs-ic" />}
         >
           新建项目
         </Button>
       </PageHeading>
       <Failure text={error || projects.error} retry={projects.refresh} />
       <Card
-        className="projects-panel"
         title="本机项目"
-        actions={<span className="count">{list.length} 个项目</span>}
+        actions={
+          <Text variant="label" muted>
+            {list.length} 个项目
+          </Text>
+        }
       >
         {!desktop ? (
           <EmptyState
@@ -183,73 +198,92 @@ export function ProjectsPage() {
             description="在桌面应用中创建、打开或导入项目。"
           />
         ) : !projects.value ? (
-          <p role="status">
+          <Text as="p" role="status">
             {projects.error ? "项目列表不可用" : "正在读取项目…"}
-          </p>
+          </Text>
         ) : list.length === 0 ? (
           <EmptyState
-            icon={<FolderOpen size={34} />}
+            icon={<FolderOpen />}
             title="还没有项目"
             description="新建项目，或从现有项目包导入。"
           />
         ) : (
-          <ul className="project-list">
-            {list.map((project) => (
-              <li key={project.id}>
-                <div className="project-glyph">
-                  <Folder size={20} />
-                </div>
-                <div className="project-meta">
-                  <div className="row-title">
-                    <strong>{project.name}</strong>
-                    {active?.id === project.id && (
-                      <span className="active-tag">当前项目</span>
-                    )}
-                  </div>
-                  {project.description && <p>{project.description}</p>}
-                  <small className="mono">{project.id}</small>
-                </div>
-                <div className="project-actions">
-                  {active?.id !== project.id && (
-                    <Button
-                      size="sm"
-                      disabled={busy}
-                      onClick={() =>
-                        void perform(() =>
-                          changeProjects("projects_switch", { id: project.id }),
-                        )
-                      }
-                    >
-                      切换
-                    </Button>
-                  )}
-                  {(
-                    [
-                      { kind: "rename", icon: Pencil, label: "编辑" },
-                      { kind: "copy", icon: Copy, label: "复制" },
-                      { kind: "export", icon: Download, label: "导出" },
-                      { kind: "delete", icon: Trash2, label: "删除" },
-                    ] as const
-                  ).map(({ kind, icon: Icon, label }) => (
-                    <button
-                      className="icon"
-                      key={kind}
-                      title={label}
-                      aria-label={label + project.name}
-                      disabled={busy}
-                      onClick={() => {
-                        if (kind === "export")
-                          void perform(() => exportProject(project.id));
-                        else setEdit({ kind, project });
-                      }}
-                    >
-                      <Icon size={16} />
-                    </button>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <List className="project-list">
+            {list.map((project) => {
+              const selected = active?.id === project.id;
+              return (
+                <ListItem
+                  key={project.id}
+                  selected={selected}
+                  title={
+                    <>
+                      <strong>{project.name}</strong>
+                      {selected && (
+                        <>
+                          {" "}
+                          <Chip size="sm">当前项目</Chip>
+                        </>
+                      )}
+                    </>
+                  }
+                  description={
+                    <>
+                      {project.description && (
+                        <>
+                          {project.description}
+                          <br />
+                        </>
+                      )}
+                      <Text variant="data" muted>
+                        {project.id}
+                      </Text>
+                    </>
+                  }
+                  leading={<Folder className="qs-ic" />}
+                  trailing={
+                    <Stack justify="flex-end">
+                      {!selected && (
+                        <Button
+                          size="sm"
+                          disabled={busy}
+                          onClick={() =>
+                            void perform(() =>
+                              changeProjects("projects_switch", { id: project.id }),
+                            )
+                          }
+                        >
+                          切换
+                        </Button>
+                      )}
+                      {(
+                        [
+                          { kind: "rename", icon: Pencil, label: "编辑" },
+                          { kind: "copy", icon: Copy, label: "复制" },
+                          { kind: "export", icon: Download, label: "导出" },
+                          { kind: "delete", icon: Trash2, label: "删除" },
+                        ] as const
+                      ).map(({ kind, icon: Icon, label }) => (
+                        <IconButton
+                          key={kind}
+                          size="sm"
+                          title={label}
+                          aria-label={label + project.name}
+                          disabled={busy}
+                          onClick={() => {
+                            if (kind === "export")
+                              void perform(() => exportProject(project.id));
+                            else setEdit({ kind, project });
+                          }}
+                        >
+                          <Icon className="qs-ic" />
+                        </IconButton>
+                      ))}
+                    </Stack>
+                  }
+                />
+              );
+            })}
+          </List>
         )}
       </Card>
       {edit && <ProjectDialog edit={edit} close={() => setEdit(null)} />}
