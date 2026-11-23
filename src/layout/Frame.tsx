@@ -1,13 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Copy, Minus, Square, X } from "lucide-react";
-import { AppBar, IconButton, Stack, useSnackbar } from "qing-steel";
+import { AppBar, IconButton, Stack, Text, useSnackbar } from "qing-steel";
 import { useApp } from "../app/state";
 import { desktop, errorText } from "../desktop";
 import { TitlebarSlots } from "./TitlebarContent";
 
 export function Frame({ children }: { children: ReactNode }) {
   const { info } = useApp();
+  const name = info.value?.name ?? document.title;
   const { show } = useSnackbar();
   const [details, setDetails] = useState<HTMLDivElement | null>(null);
   const [actions, setActions] = useState<HTMLDivElement | null>(null);
@@ -49,12 +50,16 @@ export function Frame({ children }: { children: ReactNode }) {
         <AppBar
           className="titlebar"
           title={
-            <Stack>
-              {info.value?.name ?? document.title}
+            <Stack wrap={false} style={{ gap: "var(--space-8)" }}>
+              <Text className="titlebar-name" title={name}>
+                <strong>{name}</strong>
+              </Text>
+              {info.value?.version && (
+                <Text variant="label" muted>{info.value.version}</Text>
+              )}
               <div data-slot ref={setDetails} />
             </Stack>
           }
-          subtitle={info.value?.version}
           navigation={<img className="brand-mark" src="/app-icon.png" alt="" draggable={false} />}
           actions={
             <>
