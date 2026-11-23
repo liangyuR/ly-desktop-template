@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
@@ -119,10 +119,8 @@ test("切换目标项目打开失败 → 当前项目与错误原因同时可见
   );
   await user.click(target.getByRole("button", { name: "切换" }));
   expect(await screen.findByText("项目目录不可用")).toBeVisible();
-  const active = screen
-    .getByText("当前项目", { selector: ".active-tag" })
-    .closest("li")!;
-  expect(within(active).getByText("项目 A")).toBeVisible();
+  const active = within(screen.getByRole("main")).getByText("项目 A").closest("li")!;
+  expect(within(active).getByText("当前项目")).toBeVisible();
 });
 
 test("再次检查更新失败 → 撤下旧版本安装入口，重试成功后显示新版本", async () => {
@@ -142,4 +140,58 @@ test("再次检查更新失败 → 撤下旧版本安装入口，重试成功后
   await user.click(screen.getByRole("button", { name: "检查更新" }));
   expect(await screen.findByText("发现新版本 2.1.0")).toBeVisible();
   expect(screen.getByRole("button", { name: "安装更新" })).toBeEnabled();
+});
+
+test("收起侧栏后仍能导航，并切换应用主题", async () => {
+  const setTheme = vi.fn(({ theme }) => ({ theme }));
+  backend({ set_theme: setTheme });
+  window.history.replaceState(null, "", "#/Projects/");
+  const user = userEvent.setup();
+  const { container } = render(<App />);
+  const nav = within(screen.getByRole("navigation", { name: "应用导航" }));
+  expect(nav.getByRole("link", { name: "项目" })).toHaveAttribute("aria-current", "page");
+  expect(nav.getByRole("combobox", { name: "当前项目" })).toBeVisible();
+
+  await user.click(nav.getByRole("button", { name: "收起侧栏" }));
+  expect(nav.queryByRole("combobox", { name: "当前项目" })).toBeNull();
+  await user.click(nav.getByRole("link", { name: "设置" }));
+  expect(nav.getByRole("link", { name: "设置" })).toHaveAttribute("aria-current", "page");
+  await user.click(screen.getByRole("button", { name: "浅色" }));
+  expect(setTheme).toHaveBeenCalledWith({ theme: "light" });
+  expect(container.querySelector("[data-theme]")).toHaveAttribute("data-theme", "light");
+
+  await user.click(nav.getByRole("button", { name: "展开侧栏" }));
+  expect(nav.getByRole("combobox", { name: "当前项目" })).toBeVisible();
+});
+
+test("标题栏窗口按钮与拖动区域分别发送窗口命令", async () => {
+  const startDragging = vi.fn();
+  const minimize = vi.fn();
+  const toggleMaximize = vi.fn();
+  const close = vi.fn();
+  backend({
+    "plugin:window|is_maximized": () => false,
+    "plugin:window|start_dragging": startDragging,
+    "plugin:window|minimize": minimize,
+    "plugin:window|toggle_maximize": toggleMaximize,
+    "plugin:window|close": close,
+  });
+  const user = userEvent.setup();
+  render(<App />);
+  const title = await screen.findByText("测试应用");
+
+  await user.click(screen.getByRole("button", { name: "最小化" }));
+  await user.click(screen.getByRole("button", { name: "最大化" }));
+  await user.click(screen.getByRole("button", { name: "关闭窗口" }));
+  expect(minimize).toHaveBeenCalledOnce();
+  expect(toggleMaximize).toHaveBeenCalledOnce();
+  expect(close).toHaveBeenCalledOnce();
+  expect(startDragging).not.toHaveBeenCalled();
+
+  fireEvent.mouseDown(title, { button: 0, detail: 1 });
+  fireEvent.mouseDown(title, { button: 0, detail: 2 });
+  await waitFor(() => {
+    expect(startDragging).toHaveBeenCalledOnce();
+    expect(toggleMaximize).toHaveBeenCalledTimes(2);
+  });
 });

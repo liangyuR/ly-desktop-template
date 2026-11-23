@@ -1,9 +1,34 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Checkbox, NumberField } from "qing-steel";
+import {
+  Button,
+  Card,
+  Checkbox,
+  NumberField,
+  SegmentedControl,
+  Stack,
+  StatusBadge,
+  Text,
+} from "qing-steel";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { Failure, PageHeading } from "../app/common";
 import { useApp } from "../app/state";
 import { call, desktop, errorText, type Mcp, type Theme } from "../desktop";
+
+const themeOptions = (
+  [
+    { value: "system", label: "跟随系统", icon: Monitor },
+    { value: "light", label: "浅色", icon: Sun },
+    { value: "dark", label: "深色", icon: Moon },
+  ] as const
+).map(({ value, label, icon: Icon }) => ({
+  value,
+  label: (
+    <>
+      <Icon className="qs-ic" />
+      {label}
+    </>
+  ),
+}));
 
 export function SettingsPage() {
   const { theme, setTheme, settings } = useApp();
@@ -24,27 +49,19 @@ export function SettingsPage() {
     <>
       <PageHeading title="设置" />
       <Card title="外观">
-        <div className="theme-options" role="group" aria-label="主题">
-          {(
-            [
-              { mode: "system", label: "跟随系统", icon: Monitor },
-              { mode: "light", label: "浅色", icon: Sun },
-              { mode: "dark", label: "深色", icon: Moon },
-            ] as const
-          ).map(({ mode, label, icon: Icon }) => (
-            <button
-              key={mode}
-              className="theme-choice"
-              aria-pressed={theme === mode}
-              disabled={savingTheme}
-              onClick={() => void choose(mode)}
-            >
-              <Icon size={20} />
-              {label}
-            </button>
-          ))}
-        </div>
-        <Failure text={themeError || settings.error} retry={settings.refresh} />
+        <Stack direction="column" align="stretch" wrap={false}>
+          <SegmentedControl
+            label="主题"
+            value={theme}
+            options={themeOptions}
+            disabled={savingTheme}
+            onValueChange={(value) => {
+              const option = themeOptions.find((option) => option.value === value);
+              if (option) void choose(option.value);
+            }}
+          />
+          <Failure text={themeError || settings.error} retry={settings.refresh} />
+        </Stack>
       </Card>
       <McpSettings />
     </>
@@ -96,7 +113,7 @@ function McpSettings() {
       title="本机 MCP"
       description="启用后，本机客户端可连接此应用注册的工具。"
       actions={
-        <span className={"state-pill" + (status?.enabled ? " positive" : "")}>
+        <StatusBadge tone={!status ? "neutral" : status.enabled ? "ok" : "off"}>
           {!desktop
             ? "桌面端可用"
             : !status
@@ -104,10 +121,10 @@ function McpSettings() {
               : status.enabled
                 ? "运行中"
                 : "已关闭"}
-        </span>
+        </StatusBadge>
       }
     >
-      <div className="form-stack compact">
+      <Stack className="compact" direction="column" align="stretch" wrap={false}>
         <Checkbox
           label="启用本机服务"
           checked={enabled}
@@ -122,7 +139,11 @@ function McpSettings() {
           onValueChange={setPort}
           disabled={!status || saving}
         />
-        {status?.url && <p className="mono selectable">{status.url}</p>}
+        {status?.url && (
+          <Text as="p" variant="data" className="selectable">
+            {status.url}
+          </Text>
+        )}
         <Failure
           text={error}
           retry={!status ? () => setRetry((n) => n + 1) : undefined}
@@ -143,7 +164,7 @@ function McpSettings() {
             应用设置
           </Button>
         </div>
-      </div>
+      </Stack>
     </Card>
   );
 }

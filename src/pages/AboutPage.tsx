@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Card, Dialog } from "qing-steel";
+import { Button, Card, Dialog, Stack, Text } from "qing-steel";
 import { FileText } from "lucide-react";
 import { Failure, PageHeading } from "../app/common";
 import { useApp } from "../app/state";
@@ -37,17 +37,23 @@ export function AboutPage() {
           <dt>版本</dt>
           <dd>{info.value?.version ?? "—"}</dd>
           <dt>源码修订</dt>
-          <dd className="mono">{info.value?.commit ?? "—"}</dd>
+          <dd>
+            <Text variant="data">{info.value?.commit ?? "—"}</Text>
+          </dd>
           <dt>构建时间</dt>
           <dd>{info.value?.builtAt ?? "—"}</dd>
           <dt>数据目录</dt>
-          <dd className="mono">{info.value?.dataDir ?? "—"}</dd>
+          <dd>
+            <Text variant="data">{info.value?.dataDir ?? "—"}</Text>
+          </dd>
           <dt>日志目录</dt>
-          <dd className="mono">{info.value?.logDir ?? "—"}</dd>
+          <dd>
+            <Text variant="data">{info.value?.logDir ?? "—"}</Text>
+          </dd>
         </dl>
         <Button
           variant="outlined"
-          leadingIcon={<FileText size={15} />}
+          leadingIcon={<FileText className="qs-ic" />}
           disabled={!desktop}
           onClick={() => {
             setError("");
@@ -60,7 +66,7 @@ export function AboutPage() {
         </Button>
       </Card>
       <Card title="在线更新">
-        <p>
+        <Text as="p">
           {update.value?.status === "available"
             ? "发现新版本 " + update.value.version
             : update.value?.status === "current"
@@ -70,12 +76,12 @@ export function AboutPage() {
                 : desktop
                   ? (update.error ? "未取得可用更新。" : "等待更新检查结果。")
                   : "在桌面应用中检查更新。"}
-        </p>
+        </Text>
         {update.value?.notes && (
-          <p className="release-notes">{update.value.notes}</p>
+          <Text as="p" className="release-notes">{update.value.notes}</Text>
         )}
         <Failure text={update.error} />
-        <div className="actions">
+        <Stack>
           <Button
             disabled={!desktop || checking || installing}
             onClick={() => void check()}
@@ -91,7 +97,7 @@ export function AboutPage() {
               安装更新
             </Button>
           )}
-        </div>
+        </Stack>
       </Card>
       <Failure text={error} />
       {confirmVersion && confirmVersion === update.value?.version && (

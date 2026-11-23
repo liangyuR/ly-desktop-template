@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { Alert } from "qing-steel";
+import { useRef, useState } from "react";
+import { Alert, Text } from "qing-steel";
 import {
   HashRouter,
-  Link,
   Navigate,
   Route,
   Routes,
   useLocation,
 } from "react-router-dom";
 import { AppProvider, useApp } from "./state";
+import { ActionLink } from "./common";
 import { modules } from "./modules";
 import { desktop } from "../desktop";
 import { Sidebar } from "../layout/Sidebar";
@@ -22,7 +22,7 @@ import { AboutPage } from "../pages/AboutPage";
 function Home() {
   const { projects, active } = useApp();
   if (desktop && !projects.value && !projects.error)
-    return <p role="status">正在打开工作区…</p>;
+    return <Text as="p" role="status">正在打开工作区…</Text>;
   return (
     <Navigate
       replace
@@ -43,12 +43,12 @@ function Messages() {
         </Alert>
       )}
       {settings.error && pathname !== "/settings" && (
-        <Alert tone="warn" action={<Link to="/settings">设置</Link>}>
+        <Alert tone="warn" action={<ActionLink to="/settings">设置</ActionLink>}>
           {settings.error}
         </Alert>
       )}
       {license.error && pathname !== "/license" && (
-        <Alert tone="warn" action={<Link to="/license">查看授权</Link>}>
+        <Alert tone="warn" action={<ActionLink to="/license">查看授权</ActionLink>}>
           无法读取授权状态：{license.error}
         </Alert>
       )}
@@ -56,7 +56,7 @@ function Messages() {
         state !== "valid" &&
         state !== "unconfigured" &&
         pathname !== "/license" && (
-          <Alert tone="warn" action={<Link to="/license">查看授权</Link>}>
+          <Alert tone="warn" action={<ActionLink to="/license">查看授权</ActionLink>}>
             {license.value?.message}
           </Alert>
         )}
@@ -65,7 +65,7 @@ function Messages() {
         pathname !== "/about" && (
           <Alert
             tone="info"
-            action={<Link to="/about">查看更新</Link>}
+            action={<ActionLink to="/about">查看更新</ActionLink>}
             onClose={() => dismiss(update.value?.version)}
           >
             发现新版本 {update.value.version}
@@ -76,11 +76,12 @@ function Messages() {
 }
 function Shell() {
   const location = useLocation();
+  const contentRef = useRef<HTMLElement>(null);
   return (
     <Frame>
       <div className="shell">
-        <Sidebar />
-        <main id="main-content" className="main-content">
+        <Sidebar contentRef={contentRef} />
+        <main id="main-content" className="main-content" ref={contentRef}>
           <div className="page-content">
             <Messages />
             <ErrorBoundary key={location.pathname}>
