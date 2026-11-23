@@ -26,9 +26,9 @@ pub struct Status {
 #[tauri::command]
 pub async fn update_check(app: AppHandle, state: State<'_, Updates>) -> Result<Status, String> {
     let mut pending = state.0.lock().await;
+    *pending = None;
     let config: Config =
         serde_json::from_str(include_str!("../updater.json")).map_err(|_| "更新配置格式无效")?;
-    *pending = None;
     let mut status = Status {
         status: "unconfigured",
         version: None,
@@ -67,9 +67,15 @@ pub async fn update_check(app: AppHandle, state: State<'_, Updates>) -> Result<S
     Ok(status)
 }
 #[tauri::command]
-pub async fn update_install(state: State<'_, Updates>) -> Result<(), String> {
+pub async fn update_install(
+    expected_version: String,
+    state: State<'_, Updates>,
+) -> Result<(), String> {
     let pending = state.0.lock().await;
     let update = pending.as_ref().ok_or("请先检查可用更新")?;
+    if update.version != expected_version {
+        return Err("可用版本已变更，请重新检查并确认安装".into());
+    }
     update
         .download_and_install(|_, _| {}, || {})
         .await

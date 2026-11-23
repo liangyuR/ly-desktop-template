@@ -122,14 +122,8 @@ pub struct LicenseManager {
 impl LicenseManager {
     pub fn open(config: Config, root: std::path::PathBuf) -> Result<Self, String> {
         let keys = config.keys()?;
-        let store = Store::open(root)?;
         let now = utc_now();
-        let identity = if store.exists("identity.bin") {
-            store.read::<Identity>("identity.bin")?
-        } else {
-            if store.exists("anchor.bin") || store.exists("state.bin") {
-                return Err("设备密钥缺失，不能重建既有绑定".into());
-            }
+        let store = Store::open_or_initialize(root, |store| {
             let mut seed = [0; 32];
             getrandom::getrandom(&mut seed).map_err(|_| "系统随机数不可用")?;
             let identity = Identity {
@@ -143,9 +137,9 @@ impl LicenseManager {
                 accepted: None,
             };
             store.write("anchor.bin", &anchor)?;
-            store.write("state.bin", &SavedState::default())?;
-            identity
-        };
+            store.write("state.bin", &SavedState::default())
+        })?;
+        let identity: Identity = store.read("identity.bin")?;
         if identity.product_id != config.product_id {
             return Err("应用标识与已保存的设备身份不一致".into());
         }

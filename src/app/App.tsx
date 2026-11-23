@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Alert, Button } from "qing-steel";
+import { useState } from "react";
+import { Alert } from "qing-steel";
 import {
   HashRouter,
   Link,
@@ -10,7 +10,7 @@ import {
 } from "react-router-dom";
 import { AppProvider, useApp } from "./state";
 import { modules } from "./modules";
-import { desktop, call } from "../desktop";
+import { desktop } from "../desktop";
 import { Sidebar } from "../layout/Sidebar";
 import { Frame } from "../layout/Frame";
 import { ErrorBoundary } from "../layout/ErrorBoundary";
@@ -76,35 +76,12 @@ function Messages() {
 }
 function Shell() {
   const location = useLocation();
-  const [startupError, setStartupError] = useState("");
-  function ready() {
-    if (desktop)
-      void call<void>("startup_ready").catch((e) => setStartupError(String(e)));
-  }
-  useEffect(ready, []);
   return (
     <Frame>
       <div className="shell">
         <Sidebar />
         <main id="main-content" className="main-content">
           <div className="page-content">
-            {startupError && (
-              <Alert
-                tone="ng"
-                action={
-                  <Button
-                    onClick={() => {
-                      setStartupError("");
-                      ready();
-                    }}
-                  >
-                    重试
-                  </Button>
-                }
-              >
-                {startupError}
-              </Alert>
-            )}
             <Messages />
             <ErrorBoundary key={location.pathname}>
               <Routes>

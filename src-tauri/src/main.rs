@@ -31,11 +31,6 @@ struct RuntimeConfig {
 fn app_info(state: tauri::State<AppInfo>) -> AppInfo {
     state.inner().clone()
 }
-#[tauri::command]
-fn startup_ready(window: tauri::WebviewWindow) -> Result<(), String> {
-    window.show().map_err(|e| e.to_string())
-}
-
 fn run() -> tauri::Result<()> {
     let _ = rustls::crypto::ring::default_provider().install_default();
     tauri::Builder::default()
@@ -103,7 +98,6 @@ fn run() -> tauri::Result<()> {
         })
         .invoke_handler(tauri::generate_handler![
             app_info,
-            startup_ready,
             settings::get_settings,
             settings::set_theme,
             logging::open_current_log,

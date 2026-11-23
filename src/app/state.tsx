@@ -19,7 +19,7 @@ import {
   type Update,
 } from "../desktop";
 
-function useDesktopResource<T>(command: string) {
+function useDesktopResource<T>(command: string, clearOnError = false) {
   const [value, setValue] = useState<T | null>(null);
   const [error, setError] = useState("");
   const sequence = useRef(0);
@@ -35,9 +35,12 @@ function useDesktopResource<T>(command: string) {
       const result = await call<T>(command);
       if (sequence.current === current) accept(result);
     } catch (cause) {
-      if (sequence.current === current) setError(errorText(cause));
+      if (sequence.current === current) {
+        if (clearOnError) setValue(null);
+        setError(errorText(cause));
+      }
     }
-  }, [command, accept]);
+  }, [command, accept, clearOnError]);
   useEffect(() => {
     void refresh();
     return () => {
@@ -51,7 +54,7 @@ function useDesktopState() {
   const projects = useDesktopResource<Projects>("projects_list");
   const settings = useDesktopResource<{ theme: Theme }>("get_settings");
   const license = useDesktopResource<License>("license_status");
-  const update = useDesktopResource<Update>("update_check");
+  const update = useDesktopResource<Update>("update_check", true);
   const info = useDesktopResource<AppInfo>("app_info");
   const [projectBusy, setProjectBusy] = useState(false);
   const mutating = useRef(false);

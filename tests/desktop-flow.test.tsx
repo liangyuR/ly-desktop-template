@@ -124,3 +124,22 @@ test("切换目标项目打开失败 → 当前项目与错误原因同时可见
     .closest("li")!;
   expect(within(active).getByText("项目 A")).toBeVisible();
 });
+
+test("再次检查更新失败 → 撤下旧版本安装入口，重试成功后显示新版本", async () => {
+  const check = vi.fn()
+    .mockResolvedValueOnce({ status: "available", version: "2.0.0" })
+    .mockRejectedValueOnce(new Error("更新服务不可达"))
+    .mockResolvedValueOnce({ status: "available", version: "2.1.0" });
+  backend({ update_check: check });
+  window.history.replaceState(null, "", "#/about");
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByText("发现新版本 2.0.0");
+  await user.click(screen.getByRole("button", { name: "检查更新" }));
+  expect(await screen.findByText("更新服务不可达")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "安装更新" })).toBeNull();
+  expect(screen.queryByText("发现新版本 2.0.0")).toBeNull();
+  await user.click(screen.getByRole("button", { name: "检查更新" }));
+  expect(await screen.findByText("发现新版本 2.1.0")).toBeVisible();
+  expect(screen.getByRole("button", { name: "安装更新" })).toBeEnabled();
+});
