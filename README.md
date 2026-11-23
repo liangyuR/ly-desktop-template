@@ -7,7 +7,7 @@
 ## 已确定
 
 - 仓库公开，名称为 `liangyuR/ly-desktop-template`。
-- 面向通用桌面应用，保留基本 UI、配置与日志能力；项目管理属于首版必备能力。
+- 面向通用桌面应用，保留基本 UI、配置与日志能力。首版内置项目管理，支持在同一应用进程和窗口中切换项目。
 - 参考 GlueSight 的 `main` 提交 [`432119ad`](https://github.com/liangyuR/ly-gluesight/commit/432119ad1e88041ee33cce4b06caf2e6308f5e5a)。
 
 ## 设计入口
